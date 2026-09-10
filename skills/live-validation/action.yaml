@@ -1,0 +1,57 @@
+version: 1
+name: live-validation
+description: "Close the SP-API validation gate that documentation cannot — registration and roles actually granting access, the unpublished ACCEPTED-to-visible latency, contract corners the OpenAPI models leave open, and the production canary before any real merchant goes live on writes. TRIGGER when: a developer seller account becomes available and the validation gate needs closing; the user asks to validate/prove SP-API contracts, run the spikes, or plan a production canary. SKIP for: questions the models and doc pages already answer — settle those from the amazon-api-domain-facts instruction first, since a live account is the expensive instrument."
+instructions: [amazon-live-validation-checklist]
+prompt: |-
+  # SP-API live validation
+
+  An SP-API integration can be mocked-suite green and still unproven. Most
+  contract questions are settleable on paper (see
+  the `amazon-api-domain-facts` instruction and its grounding rule) — this
+  action covers the remainder, which needs a real account.
+
+  The full checklist lives in the `amazon-live-validation-checklist`
+  instruction; work
+  through it and record verdicts wherever the project keeps its findings.
+
+  ## Order of operations
+
+  1. **Settle everything on paper first.** Field paths, enums, request bodies
+     and rate limits come from the OpenAPI models. Burning a live probe on a
+     question the model answers wastes the scarce instrument.
+  2. **Validate shapes offline.** The Local AI Sandbox validates requests
+     against the schemas and generates corner-case responses (see the
+     `amazon-mcp-setup` skill). No seller account required.
+  3. **Probe live, narrowly.** Use `sp_api_execute` from Amazon's MCP, or
+     small recorded scripts, for the items below. Prefer recorded scripts for
+     anything you want replayable.
+  4. **Canary before merchants.** One owned seller account, one low-value
+     listing, real money movement.
+
+  ## What only production answers
+
+  | Question | Why docs can't settle it |
+  |---|---|
+  | Do your app's roles actually grant these calls? | 403 means both "expired token" and "missing role" — a live `getMarketplaceParticipations` is the cheapest whoami |
+  | PII field-by-field availability | Role-gated server-side redaction; probe before AND after restricted-role approval, then diff |
+  | patch ACCEPTED → visible latency | No published SLA ("minutes to hours") — this number calibrates the read-back retry ladder |
+  | Report turnaround at your catalog size | Scales with the catalog, not documented |
+  | Are `orderItems` returned when `includedData` is omitted? | No ITEMS enum value exists; presumed always included, unconfirmed |
+  | How EasyShip / Ship+ orders present on v2026 | The `programs` enum lists neither, yet such orders exist |
+  | Report **cell** vocabularies | Column names are documented; `fulfillment-channel` and `status` values are not |
+  | `packageReferenceId` acceptance on confirmShipment | Spec requires it; issues #5094/#4329 report live rejections |
+
+  ## The canary
+
+  Sandbox cannot prove an order or inventory sync end to end. Before any real
+  merchant is switched on for writes:
+
+  - A quantity push lands AND the read-back confirms it on the live listing.
+  - A self-purchase flows through: order appears at UNSHIPPED with the
+    expected fields, your pipeline consumes it, your shipment confirmation is
+    visible in Seller Central — with the buyer-notification consequences that
+    implies, so use a real but throwaway shipment.
+  - The PII retention sweep, run against the canary order with a back-dated
+    delivery window: every local copy nulls, and the order still renders.
+
+  Keep the integration gated until each of these records a result.

@@ -1,0 +1,10 @@
+version: v0.1
+name: amazon
+description: >-
+  Amazon SP-API integration knowledge — verified contract facts, the
+  live-validation runbook, and MCP tooling references.
+
+dependencies:
+  - name: npx
+    install: brew install node
+    reason: runs Amazon's official SP-API MCP server, which amazon-mcp-setup wires up

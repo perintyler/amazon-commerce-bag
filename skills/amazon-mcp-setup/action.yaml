@@ -1,0 +1,58 @@
+version: 1
+name: amazon-mcp-setup
+description: "Wire Amazon's official SP-API MCP into a session — @amazon-sp-api-release/sp-api-dev-mcp (doc search, migration assistance, well-architected review, and live calls via sp_api_execute) — plus the Local AI Sandbox for schema-accurate offline validation. TRIGGER when: the user wants SP-API calls available as tools, asks to set up the Amazon MCP, wants an integration reviewed against Amazon's own guidance, or live-validation work would benefit from interactive API calls instead of scripts. SKIP for: community SP-API MCP servers (thin, single-digit commit histories — see the amazon-mcp-and-tooling instruction) and for seller-operations assistants, which are not integration tooling."
+prompt: |-
+  # Amazon SP-API MCP setup
+
+  One official package, two servers, different jobs. Full survey: the
+  `amazon-mcp-and-tooling` instruction.
+
+  ## Official — `@amazon-sp-api-release/sp-api-dev-mcp`
+
+  Announced May 2026 (amzn/selling-partner-api-samples discussion #382). Node
+  20+, local, no credentials except for live calls.
+
+  ```sh
+  # Claude Code:
+  claude mcp add sp-api -- npx -y @amazon-sp-api-release/sp-api-dev-mcp
+  ```
+
+  **sp-api-dev-assistant-mcp-server** — natural-language search over the
+  authoritative docs, endpoint exploration, code generation, **API version
+  migration assistance**, and a **well-architected review** grading an
+  integration across nine pillars including error handling and rate-limit
+  optimization. Needs no credentials. Reach for it when the question is "what
+  does the contract say" or "is my client shaped right".
+
+  **sp-api-workflow-mcp-server** — multi-step workflows on an Amazon State
+  Language engine with OAuth token management. Its `sp_api_execute` tool makes
+  **live SP-API calls**. Reach for it when the question is "what does
+  production actually return for THIS seller" — the fast path for probes that
+  would otherwise be throwaway scripts.
+
+  Auth for live calls: the workflow server manages LWA tokens, so have the
+  app's client id/secret and the seller's refresh token ready. Check the
+  package README for the env var names the installed version expects.
+
+  ## Local AI Sandbox — validation without a seller account
+
+  In `amzn/selling-partner-api-samples` (AI-sandbox directory; the repo root
+  links it). Serves on `localhost:9001`, validates every request against the
+  SP-API **OpenAPI schemas** with detailed errors, and simulates responses via
+  a Bedrock-backed agent generating dynamic corner-case data — well past the
+  hosted sandbox's canned responses.
+
+  Requires **Node 22+ and AWS credentials with Bedrock access**. Amazon
+  recommends it for all solution providers. Use it to burn down contract-shape
+  risk before touching a live account.
+
+  ## Which to pick
+
+  - Auditing a hand-rolled client (error handling, throttling, a version
+    migration): **dev assistant**, no credentials needed.
+  - Settling a live-behavior question from the validation checklist:
+    **`sp_api_execute`** against a dev seller account.
+  - Proving request/response shapes with no account at all: **Local AI
+    Sandbox**.
+  - The hosted static sandbox: last resort — Orders is static-only, so it
+    proves shape at best, never behavior.

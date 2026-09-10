@@ -1,0 +1,75 @@
+version: 1
+name: sp-api-integration
+description: 'Build and debug an Amazon SP-API integration — LWA auth and the invalid_grant disconnect signal, Orders v2026-01-01 reads plus the v0 confirmShipment write, Listings quantity patches and their deferred read-back, merchant-listings-report enumeration, rate-limit handling, and the polling-to-SQS upgrade. TRIGGER when: the user is implementing or troubleshooting SP-API code — seller OAuth, order polling, quantity sync, FBA vs MFN, report parsing, 429s, or mentions "selling partner api", "sp-api", "amazon seller integration", "amazon marketplace orders". SKIP for: seller-operations questions (repricing, PPC, FBA fees) — this is integration engineering, not store management.'
+instructions: [amazon-api-domain-facts]
+prompt: |-
+  # Building against SP-API
+
+  Verified contract facts live in the `amazon-api-domain-facts` instruction —
+  read it before writing code, and follow its grounding rule (answer from
+  Amazon's `llms.txt` and the OpenAPI models, never from memory). This action
+  is the build order and the hazards that shape the architecture.
+
+  ## The four hazards that shape everything
+
+  1. **ACCEPTED is a receipt, not a confirmation.** Listings patches process
+     asynchronously with no SLA and no submission-status API. Suppressed
+     listings, missing compliance attributes and FBA conversion all present as
+     "ACCEPTED, then nothing". A deferred read-back is mandatory; concurrent
+     pushes need a generation token so an older confirmation cannot clobber a
+     newer push.
+  2. **Silent no-ops.** A DEFAULT-channel patch on an FBA SKU is accepted and
+     changes nothing. Hard-gate FBA out of the write path.
+  3. **Silent truncation and localization.** Extra `marketplaceIds` on a
+     report are dropped, not rejected; report headers are localized per store.
+     A zero-row parse must alert, never drive a reconcile.
+  4. **Retryables that look permanent.** Swallowing a 429 into a "rejected"
+     result turns one transient rate limit into a permanently blocked row.
+     Let retryable errors reach the retry policy.
+
+  ## Build order
+
+  1. **Auth first.** LWA only — no SigV4. Refresh-on-401-AND-403 (SP-API uses
+     403 for expired tokens), and treat `invalid_grant` on refresh as the only
+     disconnect signal. Secure the OAuth round trip: signed, expiring,
+     single-use, session-bound state, and refuse a reconnect naming a
+     different `selling_partner_id`.
+  2. **Read before write.** Mirror the catalog via
+     `GET_MERCHANT_LISTINGS_ALL_DATA` (the only complete enumeration —
+     `searchListingsItems` caps at 1,000 SKUs), and poll orders on
+     `lastUpdatedAfter` with an overlap window. Both are idempotent; neither
+     can hurt a seller.
+  3. **Orders in.** Build reads on v2026-01-01; create downstream records only
+     at UNSHIPPED (Pending orders lack prices and addresses and frequently die
+     cancelled). Keep writes on v0 `confirmShipment`.
+  4. **Writes last, gated.** Ship the quantity push behind a shadow mode that
+     runs the whole pipeline and records what it would send. Read the recorded
+     decisions before enabling real writes.
+
+  ## Rate budgets worth designing around
+
+  `searchOrders` at 0.0056 rps (~1 call/3 min) sustains a 5-minute poll and
+  nothing chattier. `createReport` refills at ~1/min per seller — one report
+  per import run. Listings ops run ~5 rps per seller-app pair. The
+  `x-amzn-RateLimit-Limit` header is unreliable on 429, so backoff must be
+  self-contained.
+
+  ## When polling stops being enough
+
+  Polling-first is a legitimate launch architecture. Move to SQS notifications
+  when order latency matters, seller count multiplies polling spend, or the
+  read-back ladder's cost outgrows a push signal —
+  The `amazon-notifications-upgrade` instruction has the subscription shape, the
+  subscription-time `eventFilter` that cuts volume server-side, and the
+  consumer rules (dedupe on NotificationId, tolerate out-of-order delivery,
+  keep the reconciliation poll as the safety net).
+
+  ## Reference
+
+  Every hazard above came out of a production integration that hit it. The
+  shapes worth copying: a minimal LWA-only client with refresh-on-401-and-403
+  and retryables re-raised so job retry policies see them; a deferred
+  read-back carrying a per-submission generation token, so a racing
+  confirmation cannot clobber a newer push; report parsing that strips the
+  BOM, reads by header name, alerts on an unrecognized header row, and refuses
+  to reconcile an empty parse against a populated mirror.
