@@ -24,9 +24,42 @@ Orders v0). Ground every contract claim in:
   index of every doc page. Append `.md` to any doc URL for clean markdown.
   Note the host: `developer-docs.amazon.com` 301s to `developer-docs.amazon`;
   fetchers that don't follow cross-host redirects fail on the `.com` form.
-- The OpenAPI models at `raw.githubusercontent.com/amzn/selling-partner-api-models/main/models/...`
+- The models at `raw.githubusercontent.com/amzn/selling-partner-api-models/main/models/...`
   — the authority when doc pages and models disagree, and the only source for
-  exact field paths and enums.
+  exact field paths and enums. Note these are **Swagger 2.0**, not OpenAPI 3
+  (verified: `ordersV0.json` declares `"swagger": "2.0"`), so OpenAPI-3-only
+  generators need a conversion step.
+
+## Using an LLM with SP-API data (policy, not contract)
+
+Distinct from the API contract and easy to miss, because it lives in the
+Solution Provider Portal Agreement rather than the SP-API docs. Verbatim from
+the August 2026 version:
+
+> "You will not, and will not allow any third party to, use any of Our
+> Materials or Solutions to directly or indirectly develop or improve large
+> language or multimodal models, machine learning models or related
+> technology."
+
+Two consequences worth designing around:
+
+- **The prohibition is on TRAINING, not inference.** Passing a seller's own
+  orders or listings into a model to do their work is not what this bars.
+  Letting a vendor train on that data is — and *"will not allow any third
+  party"* makes the model vendor's terms your problem. A consumer tier that
+  trains on inputs is disqualifying; use an enterprise/no-training tier.
+- **"Agent" is defined broadly** — *"any software or service that takes
+  autonomous or semi-autonomous action on behalf of, or at the instruction of,
+  any person or entity"* — which catches a cron repricer, not just an LLM.
+  Agents *"must clearly identify themselves as automated systems"*, and Amazon
+  reserves the right to limit Agent access at its discretion.
+
+Amazon's Data Protection Policy separately forbids PII in logs, which is the
+classic LLM prompt-logging failure mode — the redaction that keeps buyer PII
+out of your own logs must cover prompts and transcripts too. Inference-time
+transmission of non-PII data to a third-party model is genuinely unaddressed:
+neither prohibited nor blessed. Read the current agreement before relying on
+any of this; it is a live document.
 
 ## Auth: LWA only (the gating stale-advice trap)
 

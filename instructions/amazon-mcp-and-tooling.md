@@ -11,36 +11,64 @@ mode: on-demand
 What exists, what it's for, and when to reach for it (surveyed September
 2026).
 
-## Amazon's official MCP server — install this first
+## Amazon's official MCP server — useful, and sharper than it looks
 
-`@amazon-sp-api-release/sp-api-dev-mcp` (announced May 2026,
-amzn/selling-partner-api-samples discussion #382). Node 20+, runs locally via
-`npx`, plugs into Claude Code / Cursor / VS Code. Two servers in one package:
+`@amazon-sp-api-release/sp-api-dev-mcp` — v1.0.5 (2026-08-18), Apache-2.0,
+Node 20+, maintained by @amazon.com accounts. Runs locally via `npx`; plugs
+into Claude Code / Cursor / VS Code. Three binaries: a dispatcher plus two
+servers.
 
 - **sp-api-dev-assistant-mcp-server** — natural-language search over the
-  authoritative docs, endpoint exploration, code generation in 5 languages,
-  **API version migration assistance**, and a "well-architected review" that
-  grades an integration across 9 pillars including error handling and
-  rate-limit optimization. Needs no credentials.
-- **sp-api-workflow-mcp-server** — multi-step workflows on an Amazon State
-  Language engine with OAuth token management. Its `sp_api_execute` tool
-  makes **live SP-API calls** — the fast path for one-off probes that would
-  otherwise be throwaway scripts.
+  authoritative docs, endpoint exploration, code generation, **API version
+  migration assistance**, and a "well-architected review" grading an
+  integration across 9 pillars. Needs no credentials. This half is safe and is
+  where most of the value is.
+- **sp-api-workflow-mcp-server** — multi-step workflows on an Amazon States
+  Language engine. Its `sp_api_execute` tool makes **live SP-API calls**.
 
-Reach for the dev assistant when the question is "what does the contract
-say / is my client shaped right"; reach for `sp_api_execute` when the
-question is "what does production actually return for THIS seller".
+**Read this before enabling `sp_api_execute`.** It targets
+`sellingpartnerapi-{na,eu,fe}.amazon.com` — **production, hardcoded** — and
+takes an arbitrary HTTP `method` plus body, so POST/PUT/PATCH/DELETE are all
+reachable. It ships **no `destructiveHint`/`readOnlyHint` annotations, no
+confirmation gate, and no dry-run**, and authenticates with long-lived static
+LWA secrets in plaintext env vars. An agent that decides to "just fix" a
+listing can PATCH a real seller's catalog with nothing standing in the way.
+Treat it as a loaded production credential, not a sandbox.
 
-## Local AI Sandbox — schema-accurate validation without a seller account
+That risk is compounded by the tool being **undocumented**: it appears nowhere
+in `llms.txt`'s 1,062 pages and in none of 2026's changelog entries. Amazon
+shipped it as an example, not a supported product — so the highest-risk tool
+in the ecosystem is also the least documented one. There is no hosted variant.
 
-In `amzn/selling-partner-api-samples` (the AI-sandbox directory; the repo
-root links it). Locally deployed (`localhost:9001`), validates every request
-against the SP-API **OpenAPI schemas** with detailed errors, and simulates
-responses via a Bedrock-backed agent that generates dynamic, corner-case
-test data — far past the static sandbox's canned responses. Requires Node
-22+ and AWS credentials with Bedrock access. Amazon recommends it for all
-solution providers. Use it to burn down contract-shape risk before touching
-a live account.
+Reach for the dev assistant when the question is "what does the contract say /
+is my client shaped right". Reach for `sp_api_execute` only for **reads** you
+have deliberately scoped, and prefer a script for anything that writes.
+
+## Local AI Sandbox — the closest thing to a usable sandbox
+
+In `amzn/selling-partner-api-samples/local-ai-sandbox`. Runs locally on
+`localhost:9001`, validates requests against SP-API schemas, and covers ~60
+operations across Catalog Items, Listings, Orders, Product Pricing, FBA
+Inventory, Reports, Notifications, Data Kiosk and External Fulfillment.
+
+**v2 (commit `94eb5ec3`, 2026-09-03) removed the LLM from response
+generation** — a deliberate reversal worth knowing, because the name and much
+of the surrounding documentation still imply otherwise. Its README now says it
+*"serves responses from deterministic, local operation handlers backed by an
+in-process database"* and that *"SP-API endpoints are served locally and do
+not call Bedrock."* Amazon's stated reasons: latency, inference cost, and
+non-determinism. Bedrock survives only behind `POST /chat`, the Data Generator
+that turns a natural-language prompt into test data.
+
+That makes it *better* for validation, not worse: deterministic responses are
+what a test suite needs. Requires Node 22+; AWS credentials with Bedrock
+access are needed **only** for the Data Generator. Amazon's own docs page for
+the sandbox still describes the v1 AI-agent behavior — trust the repo README
+over the docs site here.
+
+Use it to burn down contract-shape risk before touching a live account. It
+still cannot prove real-world behavior: for that, see the
+`amazon-live-validation-checklist` instruction.
 
 ## peddler — the Ruby benchmark
 
