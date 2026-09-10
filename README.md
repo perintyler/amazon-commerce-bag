@@ -16,6 +16,20 @@ to read out of this directory by hand:
   describe SigV4, dead since 2023). Alongside it:
   `amazon-notifications-upgrade` (polling → SQS),
   `amazon-live-validation-checklist`, and `amazon-mcp-and-tooling`.
+- **Tools** (namespace `amazon`) — read-only, and deliberately so. `get_orders`
+  searches or fetches on **Orders v2026-01-01** (v0 is removed 2027-03-27);
+  `get_listing` reads fulfillment availability and the issues that reveal a
+  suppressed listing; `whoami` is the cheapest end-to-end auth proof; `status`
+  reports connectivity without throwing.
+
+  There is no write path. `ACCEPTED` is a receipt, not a confirmation, and a
+  patch to the wrong fulfillment channel is accepted while doing nothing — so
+  writes get their own design, with staging, read-back and explicit approval.
+
+  Credentials (`SP_API_CLIENT_ID`, `SP_API_CLIENT_SECRET`,
+  `SP_API_REFRESH_TOKEN`) resolve per-barry from the vault and never reach the
+  model. `SP_API_REGION` selects na/eu/fe.
+
 - **Actions** (`find_actions` / `use_action`) — `sp-api-integration` for
   building and debugging, `live-validation` for closing the gate documentation
   cannot, and `amazon-mcp-setup` for wiring up Amazon's official SP-API MCP.
