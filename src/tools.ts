@@ -28,8 +28,14 @@ import {
   unwrapOrder,
 } from "./client.js";
 
-/** Shape one v2026 order into the fields a channel integration actually uses. */
-function shapeOrder(raw: Record<string, any>) {
+/**
+ * Shape one v2026 order into the fields a channel integration actually uses.
+ *
+ * Exported for tests: this is where the v2026 field renames, the string-money
+ * parsing and the absent-PII degradation are actually applied, so it is the
+ * function most worth pinning against a recorded response.
+ */
+export function shapeOrder(raw: Record<string, any>) {
   return {
     orderId: raw.amazonOrderId ?? raw.orderId,
     // v2026 renamed these from v0's purchaseDate/lastUpdatedDate.
