@@ -2,7 +2,26 @@ version: v0.1
 name: amazon-commerce
 description: >-
   Selling on Amazon through the Selling Partner API — verified contract facts,
-  the live-validation runbook, and MCP tooling references.
+  read-only order and listing tools, the live-validation runbook, and MCP
+  references.
+
+tools:
+  entry: tools.ts
+  env:
+    - SP_API_CLIENT_ID
+    - SP_API_CLIENT_SECRET
+    - SP_API_REFRESH_TOKEN
+
+# The namespace (`amazon`) differs from the bag name (`amazon-commerce`), and
+# namespace derivation falls back to the BAG NAME when introspection of the
+# built bundle yields nothing (auto-traits.ts, ownNamespaces). Without this
+# block a missing or stale build would grant `amazon-commerce` and every tool
+# would silently be invisible.
+tool-metadata:
+  - { toolName: status, namespace: amazon, access: read }
+  - { toolName: whoami, namespace: amazon, access: read }
+  - { toolName: get_orders, namespace: amazon, access: read }
+  - { toolName: get_listing, namespace: amazon, access: read }
 
 dependencies:
   - name: npx
