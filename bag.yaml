@@ -1,8 +1,8 @@
 version: v0.1
-name: amazon
+name: amazon-commerce
 description: >-
-  Amazon SP-API integration knowledge — verified contract facts, the
-  live-validation runbook, and MCP tooling references.
+  Selling on Amazon through the Selling Partner API — verified contract facts,
+  the live-validation runbook, and MCP tooling references.
 
 dependencies:
   - name: npx

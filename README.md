@@ -1,8 +1,10 @@
-# amazon bag
+# amazon-commerce bag
 
-Amazon SP-API integration knowledge — the contract facts that shape an
-inventory-and-orders integration, and the runbooks for proving them. No tools,
-servers, or credentials; prose and procedures.
+Selling on Amazon through the Selling Partner API — the contract facts that
+shape an inventory-and-orders integration, and the runbooks for proving them.
+
+Named for the domain rather than the vendor: this is seller-side integration
+engineering, not AWS, retail, or anything else under the Amazon name.
 
 Everything reaches an agent through Barry's own primitives, so there is nothing
 to read out of this directory by hand:
