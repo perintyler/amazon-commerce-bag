@@ -33,13 +33,26 @@ Orders v0). Ground every contract claim in:
 ## Using an LLM with SP-API data (policy, not contract)
 
 Distinct from the API contract and easy to miss, because it lives in the
-Solution Provider Portal Agreement rather than the SP-API docs. Verbatim from
-the August 2026 version:
+**Solution Provider Portal Agreement**, Section 6 ("License to Our Materials
+and Services"), August 2026 version —
+`sellercentral.amazon.com/solution-provider/agreement`. Verbatim:
 
 > "You will not, and will not allow any third party to, use any of Our
 > Materials or Solutions to directly or indirectly develop or improve large
 > language or multimodal models, machine learning models or related
 > technology."
+
+**Check the right document.** This clause is in the Solution Provider Portal
+Agreement, *not* the Acceptable Use Policy or the Data Protection Policy —
+searching those for "train" or "large language" turns up nothing and produces
+a confident false negative. (The live AUP has its own, narrower AI clauses:
+§2.4 requires being explicit about the use of AI in a service, its accuracy
+and data freshness; §2.10 requires validation checks on analytical processing
+such as AI-driven automated decision-making with material business impact.)
+The separately-referenced **Agent Policy** is auth-gated — its operative text
+could not be read, so treat any specific numbers you see quoted for it
+(repricing caps, ASIN thresholds, log-retention periods) as unsourced until
+you read it yourself while signed in.
 
 Two consequences worth designing around:
 
@@ -105,8 +118,13 @@ and any mirror rows — not just the obvious one).
 
 ## Orders API v2026-01-01 (verified contract)
 
-v0's read operations are deprecated (removed March 2027). Build reads on
-v2026; the field names differ from v0 in ways that silently break decorators:
+v0's read operations (`getOrders`, `getOrder`, `getOrderBuyerInfo`,
+`getOrderAddress`, `getOrderItems`, `getOrderItemsBuyerInfo`) were deprecated
+2026-01-28 and are **removed 2027-03-27** — a hard date from Amazon's
+[deprecation schedule](https://developer-docs.amazon/sp-api/docs/sp-api-deprecations.md),
+after which the calls fail rather than warn. Finances v0's
+`listFinancialEvents*` follow on 2027-08-27. Build reads on v2026; the field
+names differ from v0 in ways that silently break decorators:
 
 - Timestamps: **`createdTime` / `lastUpdatedTime`** (not
   purchaseDate/lastUpdatedDate).
